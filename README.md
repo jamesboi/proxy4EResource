@@ -8,7 +8,7 @@ It covers some key features that EZproxy had: URL rewrite, cookie rewrite and et
 
 ### However, things did not go as we planned.
 * A lot of libraries had already adopted EZProxy, and this application did not have significant benefits over it. Few libraries were willing to move over.
-* The initial idea was to host the application server in the cloud, and a lot of libraries can share it. However, we did see resistant from content vendors as requests come from a single IP which was hard for them to charge the content usage; If we had one application per library, the maintenance/hosting cost would be too pricey; If we shipped the application and let libraries to host by themselves, we would face the same maintenance/support issues as EZproxy.
+* The initial idea was to host the application server in the cloud, and a lot of libraries can share it. However, we did see resistant from content vendors as requests come from a single IP which was hard for them to charge the content usage; If we had one application on one server per library, the maintenance/hosting cost would be too pricey; If we shipped the application and let libraries to host by themselves, we would face the same maintenance/support issues as EZproxy.
 * Since it was a difficult sell, it lost support and went sideways.
 * More and more libraries/universities are adopting Single-Sign-On, and the proxy approach became legacy.
 
@@ -21,11 +21,13 @@ If this application running under hostname proxy4eresource.org. Then patron coul
 
 Furthermore, the proxy is also smart enough to rewrite cookies. For instance, cookies from host a.b.c would be rewritten to a.b.c.proxy4eresource.org and send to the patron which is exactly the expected behavior if no proxy in between.
 
+One of the great thing about this proxy is that the proxy does not hold any sessions: all cookies are pass back to the patron's browser. This opens the door that you can use load balancer in the front to have a running clusters; If one proxy node is down, there would be not a issue to connect another one.
+
 The application has been tested around 30 E-Resource sites that commonly used by libraries at that time, and all of the tested sites had green lights.
 
 # Limitation
  * The proxy does not work well with HTTPs or non-standard port (other than port 80/443). The proxy can fetch data from the content vendor with https without a problem, but it needs its own certificate to serve https.  This is a universal problem, EZproxy also does not support HTTPS or non-standard port very well.
- * The proxy does not have good authentication integration. Currently, it can forward patrons to a login page. The idea is after login, the other application set up a cookie or send an HTTP request to proxy with a token to continue.
+ * The proxy does not have good authentication integration. Currently, it can forward patrons to a login page. The idea is after login, the other application set up a cookie or send an HTTP request to proxy with a token to continue. One way you can do is running this application on different port other than 80, e.g. 8080 or in a internal network e.g. docker, and run Apache at port 80 in the front and proxy back to this proxy. In this case, you can leverage the Apache LDAP module and etc. to do the authentication which a lot Library IT forks are familiar with.
  * It doesn't support modern websites which use a lot of Javascript and etc. Since this is mainly targeting E-Resource sites.
  * Statstics is limited. It currently write to a log file. One way is that you can add a reverse proxy, e.g. nginx on top of it, which not only cache static data like images or css, but also can be benefit by the nginx log, which can be analzed by a lot of tools.
 
@@ -50,7 +52,7 @@ mvn compile exec:java -Dexec.mainClass="proxy4eresource.proxy.Launcher"
 </code>
 
 * You should be able to open your browser to
-http://sites.stfx.ca.proxy4eresource.org or http://www.statcan.gc.ca.proxy4eresource.org
+http://sites.stfx.ca.proxy4eresource.org or http://www.msvu.ca.proxy4eresource.org
 to see the result.
 
 For production, you might change the log4j.properties to be less verbose and point the *.proxy.yourdomain.org to the application you are running.
